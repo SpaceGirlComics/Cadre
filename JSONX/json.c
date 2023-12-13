@@ -347,9 +347,101 @@ enum JSONTYPE jsonPathGet(LPJSONOBJECT source, void* destination, char* path)
 	return(JSON_NULL);
 }
 
-enum JSONTYPE jsonEncode(LPJSONOBJECT json, char* output)
+int jsonEncode(LPJSONOBJECT json, char* output)
 {
 	return(JSON_NULL);
+}
+
+int jsonDestroyNumber(LPJSONOBJECT num)
+{
+	free(num->name);
+	free((double*)num->value);
+	free(num);
+	return(0);
+}
+
+int jsonDestroyString(LPJSONOBJECT str)
+{
+	free(str->name);
+	free((char*)str->value);
+	free(str);
+	return(0);
+}
+
+int jsonDestroyNull(LPJSONOBJECT nul)
+{
+	free(nul->name);
+	free(nul);
+	return(0);
+}
+
+int jsonDestroyBool(LPJSONOBJECT bol)
+{
+	free(bol->name);
+	free(bol);
+	return(0);
+}
+
+int jsonDestroyArray(LPJSONOBJECT arr)
+{
+	LPJSONOBJECT current = arr->value;
+	LPJSONOBJECT next;
+	while (current)
+	{
+		next = current->next;
+		switch (current->type)
+		{
+			case JSON_STRING:
+			{
+				jsonDestroyString(current);
+				break;
+			}
+
+			case JSON_NUMBER:
+			{
+				jsonDestroyNumber(current);
+				break;
+			}
+
+			case JSON_OBJECT:
+			{
+				break;
+			}
+
+			case JSON_ARRAY:
+			{
+				jsonDestroyArray(current);
+				break;
+			}
+
+			case JSON_BOOLEAN:
+			{
+				jsonDestroyBool(current);
+				break;
+			}
+
+			case JSON_NULL:
+			{
+				jsonDestroyNull(current);
+				break;
+			}
+
+			case JSON_MALFORMED:
+			{
+				break;
+			}
+		}
+		//free(current);
+		current = next;
+	}
+	free(arr->name);
+	free(arr);
+	return(0);
+}
+
+int jsonDestroyObject()
+{
+
 }
 
 enum JSONTYPE jsonDestroy(LPJSONOBJECT json)
