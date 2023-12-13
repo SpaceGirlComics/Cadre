@@ -1,3 +1,7 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "json.h"
 #include <string.h>
 #include <stdio.h>
@@ -278,7 +282,7 @@ LPJSONOBJECT jsonParse(char* json)
 		case '\r':
 		case '\t':
 		{
-			x++;
+			//x++;
 			break;
 		}
 
@@ -297,14 +301,14 @@ LPJSONOBJECT jsonParse(char* json)
 		}
 		default:
 		{
-			if ((json[x] >= 48 && json[x] <= 57) || json[x] == 45)
+			if ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
 			{
 				job->type = JSON_NUMBER;
 				//job->value = new double;														// c++
 				job->value = (void*)malloc(sizeof(double));										// C
 				hold = sscanf(&json[x], "%lf", (double*)job->value);
 				job->datalength = sizeof(double);
-				while ((json[x] >= 48 && json[x] <= 57) || json[x] == 45)
+				while ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
 				{
 					x++;
 				}
@@ -339,3 +343,4 @@ enum JSONTYPE jsonDestroy(LPJSONOBJECT json)
 {
 	return(JSON_NULL);
 }
+

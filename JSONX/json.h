@@ -11,6 +11,10 @@ typedef struct _JSONOBJECT
 	struct _JSONOBJECT* next;
 } JSONOBJECT, * LPJSONOBJECT;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * creates a Javascript object from a JSON formatted string.
 * Objects created with this function must be deleted using the jsonDestroy function
@@ -22,5 +26,9 @@ enum JSONTYPE jsonGet(LPJSONOBJECT source, void* destination);
 enum JSONTYPE jsonPathGet(LPJSONOBJECT source, void* destination, char* path);
 enum JSONTYPE jsonEncode(LPJSONOBJECT json, char* output);
 enum JSONTYPE jsonDestroy(LPJSONOBJECT json);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
