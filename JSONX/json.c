@@ -122,7 +122,7 @@ LPJSONOBJECT jsonArray(int count, char* json)
 		case '\r':
 		case '\t':
 		{
-			x++;
+			//x++;
 			break;
 		}
 
@@ -131,7 +131,7 @@ LPJSONOBJECT jsonArray(int count, char* json)
 			// job->next = new JSONOBJECT;														//	c++
 			job->next = (LPJSONOBJECT)malloc(sizeof(JSONOBJECT));								// C
 			job = job->next;
-			job->name = (char*)count;
+			job->name = (char*)++count;
 			break;
 		}
 
@@ -144,14 +144,14 @@ LPJSONOBJECT jsonArray(int count, char* json)
 
 		default:
 		{
-			if ((json[x] >= 48 && json[x] <= 57) || json[x] == 45)
+			if ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
 			{
 				job->type = JSON_NUMBER;
 				//job->value = new double;													// c++
 				job->value = (void*)malloc(sizeof(double));									// C
 				hold = sscanf(&json[x], "%lf", (double*)job->value);
 				job->datalength = sizeof(double);
-				while ((json[x] >= 48 && json[x] <= 57) || json[x] == 45)
+				while ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
 				{
 					x++;
 				}
@@ -211,6 +211,18 @@ LPJSONOBJECT jsonParse(char* json)
 		{
 			job->type = JSON_OBJECT;
 			job->value = jsonParse(&json[++x]);
+			for (int y = 1; y > 0; y)
+			{
+				if (json[x] == '{')
+				{
+					y++;
+				}
+				if (json[x++] == '}')
+				{
+					y--;
+				}
+			}
+			x--;
 			break;
 		}
 		case '[':
@@ -296,6 +308,7 @@ LPJSONOBJECT jsonParse(char* json)
 
 		case '}':
 		{
+			job->next = NULL;
 			return(ret);
 			break;
 		}
