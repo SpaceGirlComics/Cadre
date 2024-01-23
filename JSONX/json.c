@@ -7,334 +7,374 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-LPJSONOBJECT jsonArray(int count, char* json)
-{
-	// LPJSONOBJECT job = new JSONOBJECT;														//	c++
-	LPJSONOBJECT job = (LPJSONOBJECT)malloc(sizeof(JSONOBJECT));								// C
-	LPJSONOBJECT ret = job;
-	job->datalength = 0;
-	job->name = (char*)count;
-	job->type = JSON_NULL;
-	job->value = (void*)0;
-	int hold;
+#ifdef UNICODE
+#define CASEJSONOBJECT		case '{':
+#define CASEJSONARRAY		case '[':
+#define CASEJSONSTRING		case '\"':
+#define CASEJSONNUMBER		case '-': \
+							case '+': \
+							case '.': \
+							case 'e': \
+							case '0': \
+							case '1': \
+							case '2': \
+							case '3': \
+							case '4': \
+							case '5': \
+							case '6': \
+							case '7': \
+							case '8': \
+							case '9': 
+#define CASEJSONBOOLEAN		case 't': \
+							case 'f':
+#define CASEJSONNULL		case 'n':
+#define CASEJSONKEY			case ':':
+#define CASEJSONWHITESPACE	case ' ': \
+							case '\n': \
+							case '\r': \
+							case '\t': 
+#else
+#define CASEJSONOBJECT		case '{':
+#define CASEJSONARRAY		case '[':
+#define CASEJSONSTRING		case '\"':
+#define CASEJSONNUMBER		case '-': \
+							case '+': \
+							case '.': \
+							case 'e': \
+							case '0': \
+							case '1': \
+							case '2': \
+							case '3': \
+							case '4': \
+							case '5': \
+							case '6': \
+							case '7': \
+							case '8': \
+							case '9': 
+#define CASEJSONBOOLEAN		case 't': \
+							case 'f':
+#define CASEJSONNULL		case 'n':
+#define CASEJSONKEY			case ':':
+#define CASEJSONWHITESPACE	case ' ': \
+							case '\n': \
+							case '\r': \
+							case '\t': 
+#endif
 
-	for (unsigned int x = 0; x <= strlen(json); x++)
+int jsonObject(char* json, LPJSONOBJECT _jo)
+{
+	_jo->type = JSON_OBJECT;
+	_jo->value = malloc(sizeof(JSONOBJECT));
+	_jo->next = 0;
+	_jo = _jo->value;
+	int x;
+	for (x = 0; json[x] != '}'; x++)
 	{
 		switch (json[x])
 		{
-		case '\"':
-		{
-			x++;
-			job->type = JSON_STRING;
-			int y = 0;
-			while (json[x + y] != '\"')
+			CASEJSONOBJECT
 			{
-				if (json[x + y] == '\\')
+				x += jsonObject(&json[x+1], _jo);
+				break;
+			}
+
+			CASEJSONARRAY
+			{
+				x += jsonArray(&json[x + 1], _jo);
+				break;
+			}
+
+			CASEJSONSTRING
+			{
+				x += jsonString(&json[x+1], _jo);
+				break;
+			}
+
+			CASEJSONNUMBER
+			{
+				x += jsonNumber(&json[x], _jo);
+				break;
+			}
+
+			CASEJSONBOOLEAN
+			{
+				x += jsonBool(&json[x], _jo);
+				break;
+			}
+
+			CASEJSONNULL
+			{
+				x += jsonNull(&json[x], _jo);
+				break;
+			}
+
+			CASEJSONKEY
+			{
+				if (_jo->type == JSON_STRING)
 				{
-					y++;
-					if (json[x + y] == 'u')
-					{
-						y += 4;
-					}
+					_jo->name = _jo->value;
+					_jo->value = 0;
 				}
-				y++;
-			}
-			//job->value = new char[y + 1];														//	c++
-			job->value = (void*)malloc(y + 1);													// C
-			memcpy((char*)job->value, &json[x], y);
-			((char*)job->value)[y] = '\0';
-			x += y;
-			job->datalength = y + 1;
-			break;
-		}
-
-		case '{':
-		{
-			job->type = JSON_OBJECT;
-			job->value = jsonParse(&json[++x]);
-			break;
-		}
-
-		case '[':
-		{
-			job->type = JSON_ARRAY;
-			job->value = jsonArray(0, json);
-			break;
-		}
-
-		case 't':
-		{
-			job->type = JSON_BOOLEAN;
-			if (json[++x] == 'r' && json[++x] == 'u' && json[++x] == 'e')
-			{
-				//job->value = new bool;														//	c++
-				//*((bool*)job->value) = true;													//	c++
-				job->value = (void*)malloc(sizeof(unsigned char));								//	C
-				*((unsigned char*)job->value) = 1;
-				job->datalength = sizeof(unsigned char);
-			}
-			else
-			{
-				job->type = JSON_MALFORMED;
-				return((LPJSONOBJECT)JSON_NULL);
-			}
-			break;
-		}
-
-		case 'f':
-		{
-			job->type = JSON_BOOLEAN;
-			if (json[++x] == 'a' && json[++x] == 'l' && json[++x] == 's' && json[++x] == 'e')
-			{
-				//job->value = new bool;														//	c++
-				//*((bool*)job->value) = false;													//	c++
-				job->value = (void*)malloc(sizeof(unsigned char));								//	C
-				*((unsigned char*)job->value) = 0;
-				job->datalength = sizeof(unsigned char);
-			}
-			else
-			{
-				job->type = JSON_MALFORMED;
-				return((LPJSONOBJECT)JSON_NULL);
-			}
-			break;
-		}
-
-		case 'n':
-		{
-			job->type = JSON_NULL;
-			if (json[++x] == 'u' && json[++x] == 'l' && json[++x] == 'l')
-			{
-				job->value = (void*)0;
-			}
-			else
-			{
-				job->type = JSON_MALFORMED;
-				return((LPJSONOBJECT)JSON_NULL);
-			}
-			break;
-		}
-
-		case '}':
-		case ':':
-		case ' ':
-		case '\n':
-		case '\r':
-		case '\t':
-		{
-			//x++;
-			break;
-		}
-
-		case ',':
-		{
-			// job->next = new JSONOBJECT;														//	c++
-			job->next = (LPJSONOBJECT)malloc(sizeof(JSONOBJECT));								// C
-			job = job->next;
-			job->name = (char*)++count;
-			break;
-		}
-
-		case ']':
-		{
-			job->datalength = count;
-			return(job);
-			break;
-		}
-
-		default:
-		{
-			if ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
-			{
-				job->type = JSON_NUMBER;
-				//job->value = new double;													// c++
-				job->value = (void*)malloc(sizeof(double));									// C
-				hold = sscanf(&json[x], "%lf", (double*)job->value);
-				job->datalength = sizeof(double);
-				while ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
+				else
 				{
-					x++;
+					_jo->type = JSON_MALFORMED;
 				}
-				x--;
+				break;
 			}
-			break;
-		}
+
+			CASEJSONWHITESPACE
+			{
+				break;
+			}
+
+			case ',':
+			{
+				//_jo->type = JSON_OBJECT;
+				_jo->next = malloc(sizeof(JSONOBJECT));
+				_jo = _jo->next;
+				_jo->next = 0;
+				break;
+			}
+
+			default:
+			{
+				_jo->type = JSON_MALFORMED;
+				break;
+			}
 		}
 	}
+	return(x+1);
+}
 
-	//delete(job);																				// c++
-	free(job);																					// C
-	return((LPJSONOBJECT)JSON_NULL);
+int jsonArray(char* json, LPJSONOBJECT _jo)
+{
+	_jo->type = JSON_ARRAY;
+	_jo->value = malloc(sizeof(JSONOBJECT));
+	_jo->next = 0;
+	_jo = _jo->value;
+	int x;// , ob = 0;
+	//_jo->name = malloc(sizeof(int));
+	//((int*)_jo->name) = ob;
+	for (x = 0; json[x] != ']'; x++)
+	{
+		switch (json[x])
+		{
+			CASEJSONOBJECT
+			{
+				x += jsonObject(&json[x + 1], _jo);
+				break;
+			}
+
+			CASEJSONARRAY
+			{
+				x += jsonArray(&json[x + 1], _jo);
+				break;
+			}
+
+			CASEJSONSTRING
+			{
+				x += jsonString(&json[x + 1], _jo);
+				break;
+			}
+
+			CASEJSONNUMBER
+			{
+				x += jsonNumber(&json[x], _jo);
+				break;
+			}
+
+			CASEJSONBOOLEAN
+			{
+				x += jsonBool(&json[x], _jo);
+				break;
+			}
+
+			CASEJSONNULL
+			{
+				x += jsonNull(&json[x], _jo);
+				break;
+			}
+
+			CASEJSONWHITESPACE
+			{
+				break;
+			}
+
+			case ',':
+			{
+				//_jo->type = JSON_OBJECT;
+				_jo->next = malloc(sizeof(JSONOBJECT));
+				_jo = _jo->next;
+				_jo->next = 0;
+				break;
+			}
+
+			default:
+			{
+				_jo->type = JSON_MALFORMED;
+				break;
+			}
+		}
+	}
+	return(x + 1);
+}
+
+int jsonString(char* json, LPJSONOBJECT _jo)
+{
+	_jo->type = JSON_STRING;
+	int size = 0;
+	while (json[size] != '\"')
+	{
+		if (json[size] == '\\')
+		{
+			size++;
+			if (json[size] == 'u')
+			{
+				size += 4;
+			}
+		}
+		size++;
+	}
+	_jo->datalength = size+1;
+	_jo->value = malloc(_jo->datalength);
+	memcpy(_jo->value, json, size);
+	((char*)_jo->value)[size] = '\0';
+	return(++size);
+}
+
+int jsonNumber(char* json, LPJSONOBJECT _jo)
+{
+	_jo->type = JSON_NUMBER;
+	_jo->datalength = sizeof(double);
+	_jo->value = malloc(sizeof(double));
+	sscanf(json, "%lf", (double*)_jo->value);
+	int count = 0;
+	while (json[count] != ',' && json[count] != '}' && json[count] != ']')
+	{
+		count++;
+	}
+	return(count-1);
+}
+
+int jsonBool(char* json, LPJSONOBJECT _jo)
+{
+	_jo->type = JSON_BOOLEAN;
+	_jo->datalength = sizeof(unsigned char);
+	_jo->value = malloc(sizeof(unsigned char));
+	int count = 0;
+	if (json[0] == 't' && json[1] == 'r' && json[2] == 'u' && json[3] == 'e')
+	{
+		*(char*)_jo->value = 1;
+		count += 3;
+	}
+	else if (json[0] == 'f' && json[1] == 'a' && json[2] == 'l' && json[3] == 's' && json[4] == 'e')
+	{
+		*(char*)_jo->value = 0;
+		count += 4;
+	}
+	else
+	{
+		free(_jo->value);
+		_jo->datalength = 0;
+		_jo->type = JSON_MALFORMED;
+	}
+	return(count);
+}
+
+int jsonNull(char* json, LPJSONOBJECT _jo)
+{
+	int count = 0;
+	if (json[0] == 'n' && json[1] == 'u' && json[2] == 'l' && json[3] == 'l')
+	{
+		_jo->type = JSON_NULL;
+		_jo->datalength = 0;
+		_jo->value = 0;
+		count += 3;
+	}
+	else
+	{
+		_jo->type = JSON_MALFORMED;
+	}
+	return(count);
 }
 
 LPJSONOBJECT jsonParse(char* json)
 {
-	// LPJSONOBJECT job = new JSONOBJECT;														//	c++
-	LPJSONOBJECT job = (LPJSONOBJECT)malloc(sizeof(JSONOBJECT));								// C
-	LPJSONOBJECT ret = job;
-	job->datalength = 0;
-	job->name = (char*)0;
-	job->type = JSON_NULL;
-	job->value = (void*)0;
-	int hold;
+	LPJSONOBJECT root		= malloc(sizeof(JSONOBJECT));
+	LPJSONOBJECT current	= root;
+	current->datalength		= 0;
+	current->name			= 0;
+	current->next			= 0;
+	current->type			= JSON_MALFORMED;
+	current->value			= 0;
 
-	for (unsigned int x = 0; x <= strlen(json); x++)
+	for (int x = 0; x < strlen(json); x++)
 	{
 		switch (json[x])
 		{
-		case '\"':
-		{
-			x++;
-			job->type = JSON_STRING;
-			int y = 0;
-			while (json[x + y] != '\"')
+			CASEJSONOBJECT
 			{
-				if (json[x + y] == '\\')
-				{
-					y++;
-					if (json[x + y] == 'u')
-					{
-						y += 4;
-					}
-				}
-				y++;
+				x = jsonObject(&json[x+1], current);
+				break;
 			}
-			//job->value = new char[y + 1];														//	c++
-			job->value = (void*)malloc(y + 1);													// C
-			memcpy((char*)job->value, &json[x], y);
-			((char*)job->value)[y] = '\0';
-			x += y;
-			job->datalength = y + 1;
-			break;
-		}
-		case '{':
-		{
-			job->type = JSON_OBJECT;
-			job->value = jsonParse(&json[++x]);
-			for (int y = 1; y > 0; y)
-			{
-				if (json[x] == '{')
-				{
-					y++;
-				}
-				if (json[x++] == '}')
-				{
-					y--;
-				}
-			}
-			x--;
-			break;
-		}
-		case '[':
-		{
-			job->type = JSON_ARRAY;
-			job->value = jsonArray(0, &json[++x]);
-			break;
-		}
-		case 't':
-		{
-			job->type = JSON_BOOLEAN;
-			if (json[++x] == 'r' && json[++x] == 'u' && json[++x] == 'e')
-			{
-				//job->value = new bool;														//	c++
-				//*((bool*)job->value) = true;													//	c++
-				job->value = (void*)malloc(sizeof(unsigned char));								//	C
-				*((unsigned char*)job->value) = 1;
-				job->datalength = sizeof(unsigned char);
-			}
-			else
-			{
-				job->type = JSON_MALFORMED;
-				return((LPJSONOBJECT)JSON_NULL);
-			}
-			break;
-		}
-		case 'f':
-		{
-			job->type = JSON_BOOLEAN;
-			if (json[++x] == 'a' && json[++x] == 'l' && json[++x] == 's' && json[++x] == 'e')
-			{
-				//job->value = new bool;														//	c++
-				//*((bool*)job->value) = false;													//	c++
-				job->value = (void*)malloc(sizeof(unsigned char));								//	C
-				*((unsigned char*)job->value) = 0;
-				job->datalength = sizeof(unsigned char);
-			}
-			else
-			{
-				job->type = JSON_MALFORMED;
-				return((LPJSONOBJECT)JSON_NULL);
-			}
-			break;
-		}
-		case 'n':
-		{
-			job->type = JSON_NULL;
-			if (json[++x] == 'u' && json[++x] == 'l' && json[++x] == 'l')
-			{
-				job->value = (void*)0;
-			}
-			else
-			{
-				job->type = JSON_MALFORMED;
-				return((LPJSONOBJECT)JSON_NULL);
-			}
-			break;
-		}
-		case ':':
-		{
-			job->name = (char*)job->value;
-			job->value = (void*)0;
-			job->type = JSON_NULL;
-			job->datalength = 0;
-			break;
-		}
-		case ' ':
-		case '\n':
-		case '\r':
-		case '\t':
-		{
-			//x++;
-			break;
-		}
 
-		case ',':
-		{
-			// job->next = new JSONOBJECT;														//	c++
-			job->next = (LPJSONOBJECT)malloc(sizeof(JSONOBJECT));								// C
-			job = job->next;
-			break;
-		}
-
-		case '}':
-		{
-			job->next = NULL;
-			return(ret);
-			break;
-		}
-		default:
-		{
-			if ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
+			CASEJSONARRAY
 			{
-				job->type = JSON_NUMBER;
-				//job->value = new double;														// c++
-				job->value = (void*)malloc(sizeof(double));										// C
-				hold = sscanf(&json[x], "%lf", (double*)job->value);
-				job->datalength = sizeof(double);
-				while ((json[x] >= 45 && json[x] <= 57) && json[x] != 47)
-				{
-					x++;
-				}
-				x--;
+				x = jsonArray(&json[x + 1], current);
+				break;
 			}
-			break;
-		}
+
+			CASEJSONSTRING
+			{
+				x = jsonString(&json[x + 1], current);
+				break;
+			}
+
+			CASEJSONNUMBER
+			{
+				x = jsonNumber(&json[x], current);
+				break;
+			}
+
+			CASEJSONBOOLEAN
+			{
+				x = jsonBool(&json[x + 1], current);
+				break;
+			}
+
+			CASEJSONNULL
+			{
+				x = jsonNull(&json[x + 1], current);
+				break;
+			}
+
+			CASEJSONKEY
+			{
+				if (current->type == JSON_STRING)
+				{
+					current->name = current->value;
+					current->value = 0;
+				}
+				else
+				{
+					current->type = JSON_MALFORMED;
+				}
+				break;
+			}
+
+			CASEJSONWHITESPACE
+			{
+				break;
+			}
+
+			default:
+			{
+				current->type = JSON_MALFORMED;
+				break;
+			}
 		}
 	}
-
-	//delete(job);																					// c++
-	free(job);																						// C
-	return((LPJSONOBJECT)JSON_NULL);
+	return(root);
 }
 
 enum JSONTYPE jsonGet(LPJSONOBJECT source, void* destination)
